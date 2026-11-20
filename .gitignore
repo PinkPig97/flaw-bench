@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# OS & Editors
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Eval outputs, logs, and downloaded large runtime inputs
+results/
+outputs/
+logs/
+.env
+.env.*
+benchmarks/gdp_pdf/pdf_cache/
+benchmarks/agents_last_exam/public-inputs/
+benchmarks/agents_last_exam/runs/
+benchmarks/automationbench/results/
+benchmarks/hle/predictions/

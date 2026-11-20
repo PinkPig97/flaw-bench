@@ -1,0 +1,56 @@
+# ============================================================================
+# environment_aws.yaml — run ALE on AWS (EC2 + S3). AWS counterpart of
+# environment.yaml; same per-snapshot model and the SAME image-family names.
+# ============================================================================
+# Hardcoded conventions, no ${env:...} — AWS credentials come from your CLI
+# profile (`aws configure`); the VPC, subnets and AMIs are resolved by name at
+# run time (created once per docs/ale-docs-site AWS setup page). Per snapshot:
+#   • image            image family: ale-ubuntu22 (Linux) or ale-win10 /
+#                      ale-win-server (Windows — pick either).
+#   • security_group   the firewall, by name (gcloud analogue: `network`).
+#   • zones            Availability Zones, tried in order on capacity errors.
+#   • tenancy          default = shared host (cheap; the default). dedicated =
+#                      a host reserved to your account; only needed for strict
+#                      Windows-desktop license compliance — most users leave it
+#                      on default.
+#   • gpu              set for a GPU instance type.
+# ----------------------------------------------------------------------------
+
+snapshots:
+
+  cpu-free-ubuntu:            # Linux — the bulk of tasks
+    provider: aws
+    image: ale-ubuntu22
+    aws:
+      region: us-east-1
+      security_group: ale-sandbox
+      instance_prefix: ale
+      iam_instance_profile: ale-sandbox
+      zones: [us-east-1a, us-east-1b, us-east-1c]
+
+  cpu-free:                   # Windows
+    provider: aws
+    image: ale-win10
+    resolution: [1024, 768]
+    aws:
+      region: us-east-1
+      security_group: ale-sandbox
+      instance_prefix: ale
+      iam_instance_profile: ale-sandbox
+      zones: [us-east-1a, us-east-1b, us-east-1c]
+
+  # No gpu-* snapshots: the public task list (cpu.txt) has no GPU
+  # task, so this profile is CPU-only.
+
+# ---------------------------------------------------------------------------
+# Task data + output (mirrors environment.yaml).
+# ---------------------------------------------------------------------------
+# Where task data comes from: "baked_in_sandbox" (baked into the AMI) | "s3://<bucket>".
+task_data_source: baked_in_sandbox
+
+# What to do with each run's output: null | "local" | "s3://<bucket>". The
+# snapshots already reference the `ale-sandbox` instance profile; to keep output
+# in S3, create that role/profile (see the setup docs) and set the bucket here.
+# (If it doesn't exist it's skipped for non-bucket output, so local runs need nothing.)
+output_path: null
+# output_path: local          # uncomment to fetch each run's output back to the host

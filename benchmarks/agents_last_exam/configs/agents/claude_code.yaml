@@ -1,0 +1,83 @@
+# claude_code — Anthropic's Claude Code CLI, run headless (`-p`) on the sandbox.
+# Auth: API keys come from the operator's shell env (never this file).
+#   provider=openrouter → OPENROUTER_API_KEY ;  provider=direct → ANTHROPIC_API_KEY.
+#
+# One consolidated preset for the claude_code agent. `model:` is an example you
+# change per run; every key under `config:` is set to its dataclass default
+# (ale_run/agents/claude_code/config.py) so the default of each knob is visible.
+# Reference from an experiment as:  agents: [ configs/agents/claude_code.yaml ]
+
+harness: claude_code
+# executor: sandbox          # only supported value (deployer default); runs inside the eval VM.
+
+# Example model — sugar for config.model. Dataclass default: anthropic/claude-opus-4.6.
+model: anthropic/claude-sonnet-4.6
+
+config:
+  # Routing provider. "openrouter": ANTHROPIC_BASE_URL→openrouter, AUTH_TOKEN=OPENROUTER_API_KEY. 
+  # "direct": ANTHROPIC_API_KEY against anthropic.com.
+  provider: openrouter
+
+  # Custom Anthropic-compatible base URL; overrides the provider's default. null = use provider default.
+  base_url: null
+
+  # Literal API key, carried via config (use `api_key: ${env:YOUR_KEY}`, resolved
+  # host-side → travels with the serialized config, no env-passthrough whitelist
+  # change, no clash with a real shell key). null = read the provider's env var
+  # (OPENROUTER_API_KEY for openrouter, ANTHROPIC_API_KEY for direct). For
+  # openrouter it becomes ANTHROPIC_AUTH_TOKEN; for direct, ANTHROPIC_API_KEY.
+  api_key: null
+
+  # Run-loop ceiling. -1 ≡ unlimited (deployer omits --max-turns when < 0).
+  max_turns: -1
+
+  # Hard USD spend cap for the run. null = no cap.
+  max_budget_usd: null
+
+  # Maximum response tokens requested through Claude Code. null = CLI default.
+  max_output_tokens: null
+
+  # Bypass all tool-permission prompts (required for headless runs).
+  dangerously_skip_permissions: true
+
+  # Capture Claude Code's built-in OpenTelemetry stream: the deployer starts a
+  # run-local OTLP/HTTP receiver and stores raw OTLP batches, flattened per-event
+  # logs (API request timing/tokens/cost/request-id, tool arguments + duration,
+  # prompts), cumulative metrics, and a summary in the run dir. No upstream CLI
+  # changes. false = run with telemetry off.
+  otel_enabled: true
+
+  # ── Reasoning depth: TWO knobs, which one is live depends on the model ──
+  # (verified by capturing the CLI's actual request body, 2.1.170)
+
+  # effort_level — the CURRENT reasoning control for adaptive-thinking models
+  # (Opus 4.6 / 4.7 / 4.8, Fable 5). Passed as `--effort <level>` →
+  # API `output_config.effort`. Values: low | medium | high | xhigh | max.
+  # null = don't pass --effort, use the CLI default (for opus-4-8 that is `high`).
+  # When set, the deployer skips max_thinking_tokens entirely (see below).
+  effort_level: null
+
+  # max_thinking_tokens — LEGACY extended-thinking budget (MAX_THINKING_TOKENS env
+  # → thinking.budget_tokens). Only effective on OLDER models (Sonnet 4.5 and
+  # earlier). On adaptive models (Opus 4.6 / 4.7 / 4.8, Fable 5) the CLI IGNORES
+  # it and always sends thinking:{type:"adaptive"} — 31999 / 8000 / unset all
+  # produce an identical request; use effort_level to control depth there.
+  # 31999 = the old "ultrathink" cap; null ⇒ CLAUDE_CODE_DISABLE_THINKING=1
+  # (omit the thinking param; required for adaptive models over OpenRouter).
+  max_thinking_tokens: 31999
+
+  # Built-in CC tools that deadlock or corrupt state headless — passed as
+  # repeated --disallowedTools. Default drops interactive / session-mutating tools.
+  disabled_tools:
+    - EnterPlanMode       # plan mode waits for a human accept
+    - ExitPlanMode
+    - EnterWorktree       # mutate session CWD with persistent side effects
+    - ExitWorktree
+    - AskUserQuestion     # pure user-interaction tool, no headless equivalent
+    - TaskOutput          # background-task lifecycle (no running task id headless)
+    - TaskStop
+    - RemoteTrigger       # needs a logged-in claude.ai account
+
+  # Pinned npm spec — the deployer probes `claude --version` and (re)installs
+  # when the installed version mismatches the version encoded here.
+  cli_version: "@anthropic-ai/claude-code@2.1.170"

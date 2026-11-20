@@ -1,0 +1,3 @@
+obsidian-linter-auto-table-of-contents
+sqlfmt-create-table-ddl-formatting
+prometheus-transactional-reload-status
