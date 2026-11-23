@@ -51,7 +51,6 @@ support.gorgias_defect_tracking
 support.gorgias_inventory_routing
 support.helpscout_cross_team_handoff
 support.helpscout_customer_effort
-support.helpscout_customer_merge
 support.helpscout_daily_digest
 support.hiver_escalation_patterns
 support.hiver_inbox_report
